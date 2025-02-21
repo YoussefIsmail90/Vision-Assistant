@@ -79,7 +79,7 @@ def capture_frames_from_webcam():
     finally:
         cap.release()
 
-def analyze_frames_in_real_time(lvm_api_key: str, prompt: str = "What is happening in this frame? / شايف ايه ؟"):
+def analyze_frames_in_real_time(lvm_api_key: str, prompt: str = "What is happening in this frame?"):
     """
     Analyzes frames from the webcam in real-time and displays the live stream.
     Accumulates all analysis results and displays them dynamically.
@@ -137,7 +137,7 @@ def main():
     st.header("Real-Time Video Analysis with Live Stream")
     custom_prompt_realtime = st.text_input(
         "Enter a prompt for real-time analysis (e.g., 'What is happening right now?'):",
-        value="What is happening in this frame?"
+        value="What is happening in this frame? /  شايف ايه ؟"
     )
     if st.button("Start Real-Time Analysis"):
         if lvm_api_key:
