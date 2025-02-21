@@ -1,4 +1,5 @@
 streamlit-webrtc
+aioice
 opencv-python-headless
 Pillow
 requests
