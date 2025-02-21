@@ -1,12 +1,11 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
-import av
 import requests
 import json
 from PIL import Image
 import base64
 from io import BytesIO
 import cv2
+import time
 
 # OpenRouter API endpoint for the Vision Model
 LVM_API_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -59,30 +58,54 @@ def image_to_base64(image: Image.Image) -> str:
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/jpeg;base64,{img_str}"
 
-class VideoAnalyzer(VideoProcessorBase):
-    def __init__(self, lvm_api_key: str, prompt: str):
-        self.lvm_api_key = lvm_api_key
-        self.prompt = prompt
-        self.frame_index = 0
-        self.all_results = []
+def capture_frames_from_webcam():
+    """
+    Captures frames from the webcam in real-time.
+    Yields each frame as a PIL Image.
+    """
+    cap = cv2.VideoCapture(0)  # Use 0 for the default webcam
+    if not cap.isOpened():
+        st.error("Failed to open webcam.")
+        return
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                st.warning("Failed to capture frame from webcam.")
+                break
+            # Convert BGR to RGB and to PIL Image
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            yield Image.fromarray(rgb_frame)
+    finally:
+        cap.release()
 
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")  # Convert to numpy array
-        rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
-        pil_img = Image.fromarray(rgb_img)  # Convert to PIL Image
+def analyze_frames_in_real_time(lvm_api_key: str, prompt: str = "What is happening in this frame?"):
+    """
+    Analyzes frames from the webcam in real-time and displays the live stream.
+    Accumulates all analysis results and displays them dynamically.
+    """
+    frame_generator = capture_frames_from_webcam()
+    placeholder = st.empty()  # Placeholder for displaying the live stream
+    results_container = st.empty()  # Placeholder for displaying analysis results
+    all_results = []  # List to store all results
 
-        # Analyze every 30th frame
-        if self.frame_index % 30 == 0:
-            img_url = image_to_base64(pil_img)
-            with st.spinner(f"Analyzing frame {self.frame_index}..."):
-                description = analyze_image(self.lvm_api_key, img_url, prompt=self.prompt.strip())
-                self.all_results.append(f"Frame {self.frame_index}: {description}")
-                st.markdown(
-                    "<br>".join(self.all_results),  # Display all results separated by line breaks
+    for frame_index, frame in enumerate(frame_generator):
+        # Display the live stream with use_container_width=True
+        placeholder.image(frame, caption="Live Webcam Feed", use_container_width=True)
+
+        # Analyze every 30th frame (approx. 1 second at 30 FPS)
+        if frame_index % 30 == 0:
+            img_url = image_to_base64(frame)
+            with st.spinner(f"Analyzing frame {frame_index}..."):
+                description = analyze_image(lvm_api_key, img_url, prompt=prompt.strip())
+                all_results.append(f"Frame {frame_index}: {description}")  # Append result to the list
+                results_container.markdown(
+                    "<br>".join(all_results),  # Display all results separated by line breaks
                     unsafe_allow_html=True
                 )
-        self.frame_index += 1
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+        # Add a small delay to control the frame rate
+        time.sleep(0.03)
 
 def main():
     st.title("Real-Time Vision AI Assistant with Live Stream")
@@ -94,6 +117,7 @@ def main():
     )
 
     # Sidebar for API Key input
+    st.sidebar.header("API Key")
     lvm_api_key = st.sidebar.text_input("Enter your Vision Model API Key:", type="password")
     if not lvm_api_key:
         st.sidebar.warning("Please enter your API key to proceed.")
@@ -110,31 +134,18 @@ def main():
         st.stop()
 
     # Real-Time Video Analysis Section
+    st.header("Real-Time Video Analysis with Live Stream")
     custom_prompt_realtime = st.text_input(
         "Enter a prompt for real-time analysis (e.g., 'What is happening right now?'):",
         value="What is happening in this frame?"
     )
-
-    # Use a session state variable to control the video stream
-    if "start_analysis" not in st.session_state:
-        st.session_state.start_analysis = False
-
     if st.button("Start Real-Time Analysis"):
-        st.session_state.start_analysis = True
-
-    if st.session_state.start_analysis:
-        st.info("Starting real-time analysis using your webcam...")
-        webrtc_streamer(
-            key="example",
-            video_processor_factory=lambda: VideoAnalyzer(lvm_api_key, custom_prompt_realtime),
-            rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-            media_stream_constraints={"video": True, "audio": False},
-        )
-
-    # Stop the analysis if the user clicks the "Stop" button
-    if st.button("Stop Analysis"):
-        st.session_state.start_analysis = False
-        st.experimental_rerun()  # Rerun the app to reset the streamer component
+        if lvm_api_key:
+            st.info("Starting real-time analysis using your webcam...")
+            analyze_frames_in_real_time(lvm_api_key, prompt=custom_prompt_realtime)
+        else:
+            st.error("Please enter your API key to proceed.")
 
 if __name__ == "__main__":
     main()
+
