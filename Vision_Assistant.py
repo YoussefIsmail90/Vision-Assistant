@@ -24,7 +24,7 @@ def openrouter_request(api_url: str, headers: dict, data: dict) -> dict:
         st.error(f"An unexpected error occurred: {e}")
     return None
 
-def analyze_image(lvm_api_key: str, image_url: str, prompt: str = "What is in this image? / شايف ايه؟") -> str:
+def analyze_image(lvm_api_key: str, image_url: str, prompt: str = "What is in this image?") -> str:
     """
     Analyzes an image using the Vision Model API.
     """
@@ -79,7 +79,7 @@ def capture_frames_from_webcam():
     finally:
         cap.release()
 
-def analyze_frames_in_real_time(lvm_api_key: str, prompt: str = "What is happening in this frame?"):
+def analyze_frames_in_real_time(lvm_api_key: str, prompt: str = "What is happening in this frame? / شايف ايه ؟"):
     """
     Analyzes frames from the webcam in real-time and displays the live stream.
     Accumulates all analysis results and displays them dynamically.
