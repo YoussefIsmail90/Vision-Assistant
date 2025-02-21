@@ -1,5 +1,5 @@
 streamlit-webrtc
-treamlit
+streamlit
 aioice
 opencv-python-headless
 Pillow
