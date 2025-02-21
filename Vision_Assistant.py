@@ -110,22 +110,31 @@ def main():
         st.stop()
 
     # Real-Time Video Analysis Section
-    st.header("Real-Time Video Analysis with Live Stream")
     custom_prompt_realtime = st.text_input(
         "Enter a prompt for real-time analysis (e.g., 'What is happening right now?'):",
         value="What is happening in this frame?"
     )
+
+    # Use a session state variable to control the video stream
+    if "start_analysis" not in st.session_state:
+        st.session_state.start_analysis = False
+
     if st.button("Start Real-Time Analysis"):
-        if lvm_api_key:
-            st.info("Starting real-time analysis using your webcam...")
-            ctx = webrtc_streamer(
-                key="example",
-                video_processor_factory=lambda: VideoAnalyzer(lvm_api_key, custom_prompt_realtime),
-                rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-                media_stream_constraints={"video": True, "audio": False},
-            )
-        else:
-            st.error("Please enter your API key to proceed.")
+        st.session_state.start_analysis = True
+
+    if st.session_state.start_analysis:
+        st.info("Starting real-time analysis using your webcam...")
+        ctx = webrtc_streamer(
+            key="example",
+            video_processor_factory=lambda: VideoAnalyzer(lvm_api_key, custom_prompt_realtime),
+            rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+            media_stream_constraints={"video": True, "audio": False},
+        )
+
+        # Stop the analysis if the user clicks the "Stop" button
+        if st.button("Stop Analysis"):
+            st.session_state.start_analysis = False
+            ctx.video_processor = None  # Release the video processor
 
 if __name__ == "__main__":
     main()
