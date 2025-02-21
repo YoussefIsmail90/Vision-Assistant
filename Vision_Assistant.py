@@ -124,18 +124,17 @@ def main():
 
     if st.session_state.start_analysis:
         st.info("Starting real-time analysis using your webcam...")
-        ctx = webrtc_streamer(
+        webrtc_streamer(
             key="example",
             video_processor_factory=lambda: VideoAnalyzer(lvm_api_key, custom_prompt_realtime),
             rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
             media_stream_constraints={"video": True, "audio": False},
         )
 
-        # Stop the analysis if the user clicks the "Stop" button
-        if st.button("Stop Analysis"):
-            st.session_state.start_analysis = False
-            if ctx is not None:  # Check if ctx is not None before accessing its attributes
-                ctx.video_processor = None  # Release the video processor
+    # Stop the analysis if the user clicks the "Stop" button
+    if st.button("Stop Analysis"):
+        st.session_state.start_analysis = False
+        st.experimental_rerun()  # Rerun the app to reset the streamer component
 
 if __name__ == "__main__":
     main()
