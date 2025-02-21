@@ -1,11 +1,12 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
 import av
 import requests
 import json
 from PIL import Image
 import base64
 from io import BytesIO
+import cv2
 
 # OpenRouter API endpoint for the Vision Model
 LVM_API_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -58,14 +59,14 @@ def image_to_base64(image: Image.Image) -> str:
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/jpeg;base64,{img_str}"
 
-class VideoAnalyzer(VideoTransformerBase):
+class VideoAnalyzer(VideoProcessorBase):
     def __init__(self, lvm_api_key: str, prompt: str):
         self.lvm_api_key = lvm_api_key
         self.prompt = prompt
         self.frame_index = 0
         self.all_results = []
 
-    def transform(self, frame):
+    def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")  # Convert to numpy array
         rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
         pil_img = Image.fromarray(rgb_img)  # Convert to PIL Image
@@ -93,7 +94,6 @@ def main():
     )
 
     # Sidebar for API Key input
-    st.sidebar.header("API Key")
     lvm_api_key = st.sidebar.text_input("Enter your Vision Model API Key:", type="password")
     if not lvm_api_key:
         st.sidebar.warning("Please enter your API key to proceed.")
@@ -120,7 +120,7 @@ def main():
             st.info("Starting real-time analysis using your webcam...")
             ctx = webrtc_streamer(
                 key="example",
-                video_transformer_factory=lambda: VideoAnalyzer(lvm_api_key, custom_prompt_realtime),
+                video_processor_factory=lambda: VideoAnalyzer(lvm_api_key, custom_prompt_realtime),
                 rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
                 media_stream_constraints={"video": True, "audio": False},
             )
