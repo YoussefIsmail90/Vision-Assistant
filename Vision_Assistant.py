@@ -134,7 +134,8 @@ def main():
         # Stop the analysis if the user clicks the "Stop" button
         if st.button("Stop Analysis"):
             st.session_state.start_analysis = False
-            ctx.video_processor = None  # Release the video processor
+            if ctx is not None:  # Check if ctx is not None before accessing its attributes
+                ctx.video_processor = None  # Release the video processor
 
 if __name__ == "__main__":
     main()
