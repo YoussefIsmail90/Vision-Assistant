@@ -24,7 +24,7 @@ def openrouter_request(api_url: str, headers: dict, data: dict) -> dict:
         st.error(f"An unexpected error occurred: {e}")
     return None
 
-def analyze_image(lvm_api_key: str, image_url: str, prompt: str = "What is in this image?") -> str:
+def analyze_image(lvm_api_key: str, image_url: str, prompt: str = "What is in this image? / شايف ايه؟") -> str:
     """
     Analyzes an image using the Vision Model API.
     """
@@ -148,4 +148,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
